@@ -8,6 +8,12 @@ import java.util.List;
 
 public class FileImporter {
 
+    private List<InvalidRow> invalidRows = new ArrayList<>();
+
+    public List<InvalidRow> getInvalidRows() {
+        return invalidRows;
+    }
+
     public List<Voter> importVoters(String filepath) {
         List<Voter> voters = new ArrayList<>();
 
@@ -16,7 +22,7 @@ public class FileImporter {
             while ((line = reader.readLine()) != null) {
                 String[] row = line.split(",");
                 if (row.length != 3) {
-                    System.out.println("Warning: Skipping malformed voter row: " + line);
+                    invalidRows.add(new InvalidRow(line, "Wrong number of columns", "voter"));
                     continue;
                 }
 
@@ -25,7 +31,7 @@ public class FileImporter {
                 String ageStr = row[2].trim();
 
                 if (!CheckDigitValidator.isValidId(voterId)) {
-                    System.out.println("Warning: Invalid voter ID: " + voterId);
+                    invalidRows.add(new InvalidRow(line, "Invalid voter ID", "voter"));
                     continue;
                 }
 
@@ -33,7 +39,7 @@ public class FileImporter {
                     int age = Integer.parseInt(ageStr);
                     voters.add(new Voter(voterId, district, age));
                 } catch (NumberFormatException e) {
-                    System.out.println("Warning: Invalid age for voter: " + voterId);
+                    invalidRows.add(new InvalidRow(line, "Invalid age", "voter"));
                 }
             }
         } catch (IOException e) {
@@ -51,7 +57,7 @@ public class FileImporter {
             while ((line = reader.readLine()) != null) {
                 String[] row = line.split(",");
                 if (row.length != 3) {
-                    System.out.println("Warning: Skipping malformed candidate row: " + line);
+                    invalidRows.add(new InvalidRow(line, "Wrong number of columns", "candidate"));
                     continue;
                 }
 
@@ -60,7 +66,7 @@ public class FileImporter {
                 String seat = row[2].trim();
 
                 if (!CheckDigitValidator.isValidId(candidateId)) {
-                    System.out.println("Warning: Invalid candidate ID: " + candidateId);
+                    invalidRows.add(new InvalidRow(line, "Invalid candidate ID", "candidate"));
                     continue;
                 }
 
@@ -73,7 +79,7 @@ public class FileImporter {
         return candidates;
     }
 
-    public List<Ballot> importBallots(String filepath) {
+    public List<Ballot> importBallots(String filepath, List<Candidate> candidates) {
         List<Ballot> ballots = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -81,7 +87,7 @@ public class FileImporter {
             while ((line = reader.readLine()) != null) {
                 String[] row = line.split(",");
                 if (row.length != 6) {
-                    System.out.println("Warning: Skipping malformed ballot row: " + line);
+                    invalidRows.add(new InvalidRow(line, "Wrong number of columns", "ballot"));
                     continue;
                 }
 
@@ -92,11 +98,38 @@ public class FileImporter {
                 String ageStr = row[4].trim();
                 String district = row[5].trim();
 
+                if (!CheckDigitValidator.isValidId(voterId)) {
+                    invalidRows.add(new InvalidRow(line, "Invalid voter ID", "ballot"));
+                    continue;
+                }
+
+                if (!CheckDigitValidator.isValidId(candidateId)) {
+                    invalidRows.add(new InvalidRow(line, "Invalid candidate ID", "ballot"));
+                    continue;
+                }
+
+                boolean seatMatches = false;
+                for (Candidate c : candidates) {
+                    if (c.getSeat().equals(seat)) {
+                        seatMatches = true;
+                        break;
+                    }
+                }
+                if (!seatMatches) {
+                    invalidRows.add(new InvalidRow(line, "Invalid seat number", "ballot"));
+                    continue;
+                }
+
+                if (!isValidDateFormat(date)) {
+                    invalidRows.add(new InvalidRow(line, "Invalid date format", "ballot"));
+                    continue;
+                }
+
                 try {
                     int voterAge = Integer.parseInt(ageStr);
                     ballots.add(new Ballot(date, voterId, candidateId, seat, voterAge, district));
                 } catch (NumberFormatException e) {
-                    System.out.println("Warning: Invalid age in ballot row: " + line);
+                    invalidRows.add(new InvalidRow(line, "Invalid age", "ballot"));
                 }
             }
         } catch (IOException e) {
@@ -104,5 +137,14 @@ public class FileImporter {
         }
 
         return ballots;
+    }
+
+    private boolean isValidDateFormat(String date) {
+        try {
+            java.time.LocalDate.parse(date);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

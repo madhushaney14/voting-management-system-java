@@ -48,23 +48,74 @@ public class MainApp extends Application {
         Label statusLabel = new Label("Click 'Import' to load voter.csv, candidate.csv, and ballots.csv");
         Button importButton = new Button("Import Data");
 
-        TextArea logArea = new TextArea();
-        logArea.setEditable(false);
-        logArea.setPrefHeight(300);
+        ListView<InvalidRow> invalidList = new ListView<>();
+        invalidList.setPrefHeight(150);
+
+        Label editLabel = new Label("Selected row (edit below, comma-separated):");
+        TextField editField = new TextField();
+        Button fixButton = new Button("Re-validate and Add");
+        Label fixResultLabel = new Label();
+
+        invalidList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                editField.setText(newVal.getRawLine());
+            }
+        });
 
         importButton.setOnAction(e -> {
             FileImporter importer = new FileImporter();
             voters = importer.importVoters("voter.csv");
             candidates = importer.importCandidates("candidate.csv");
-            ballots = importer.importBallots("ballots.csv");
+            ballots = importer.importBallots("ballots.csv", candidates);
             reportGenerator = new ReportGenerator(ballots, candidates);
 
+            invalidList.getItems().setAll(importer.getInvalidRows());
+
             statusLabel.setText("Loaded " + voters.size() + " voters, " +
-                    candidates.size() + " candidates, " + ballots.size() + " ballots.");
-            logArea.setText("Import complete.\n");
+                    candidates.size() + " candidates, " + ballots.size() + " ballots. " +
+                    importer.getInvalidRows().size() + " invalid rows found.");
         });
 
-        box.getChildren().addAll(statusLabel, importButton, logArea);
+        fixButton.setOnAction(e -> {
+            InvalidRow selected = invalidList.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                fixResultLabel.setText("Please select a row to fix first.");
+                return;
+            }
+
+            String[] parts = editField.getText().split(",");
+
+            if (selected.getFileType().equals("voter") && parts.length == 3) {
+                String voterId = parts[0].trim();
+                if (CheckDigitValidator.isValidId(voterId)) {
+                    try {
+                        int age = Integer.parseInt(parts[2].trim());
+                        voters.add(new Voter(voterId, parts[1].trim(), age));
+                        invalidList.getItems().remove(selected);
+                        fixResultLabel.setText("Row fixed and added successfully.");
+                    } catch (NumberFormatException ex) {
+                        fixResultLabel.setText("Age must be numeric.");
+                    }
+                } else {
+                    fixResultLabel.setText("Voter ID still invalid.");
+                }
+            } else if (selected.getFileType().equals("candidate") && parts.length == 3) {
+                String candidateId = parts[0].trim();
+                if (CheckDigitValidator.isValidId(candidateId)) {
+                    candidates.add(new Candidate(candidateId, parts[1].trim(), parts[2].trim()));
+                    invalidList.getItems().remove(selected);
+                    fixResultLabel.setText("Row fixed and added successfully.");
+                } else {
+                    fixResultLabel.setText("Candidate ID still invalid.");
+                }
+            } else {
+                fixResultLabel.setText("Could not re-validate this row type.");
+            }
+        });
+
+        box.getChildren().addAll(statusLabel, importButton,
+                new Label("Invalid rows found during import:"), invalidList,
+                editLabel, editField, fixButton, fixResultLabel);
         return box;
     }
 
