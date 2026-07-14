@@ -35,6 +35,18 @@ public class FileImporter {
                     continue;
                 }
 
+                boolean alreadyExists = false;
+                for (Voter v : voters) {
+                    if (v.getVoterId().equals(voterId)) {
+                        alreadyExists = true;
+                        break;
+                    }
+                }
+                if (alreadyExists) {
+                    invalidRows.add(new InvalidRow(line, "Duplicate voter ID", "voter"));
+                    continue;
+                }
+
                 try {
                     int age = Integer.parseInt(ageStr);
                     voters.add(new Voter(voterId, district, age));

@@ -87,26 +87,48 @@ public class MainApp extends Application {
 
             if (selected.getFileType().equals("voter") && parts.length == 3) {
                 String voterId = parts[0].trim();
-                if (CheckDigitValidator.isValidId(voterId)) {
-                    try {
-                        int age = Integer.parseInt(parts[2].trim());
-                        voters.add(new Voter(voterId, parts[1].trim(), age));
-                        invalidList.getItems().remove(selected);
-                        fixResultLabel.setText("Row fixed and added successfully.");
-                    } catch (NumberFormatException ex) {
-                        fixResultLabel.setText("Age must be numeric.");
-                    }
-                } else {
+                if (!CheckDigitValidator.isValidId(voterId)) {
                     fixResultLabel.setText("Voter ID still invalid.");
+                } else {
+                    boolean alreadyExists = false;
+                    for (Voter v : voters) {
+                        if (v.getVoterId().equals(voterId)) {
+                            alreadyExists = true;
+                            break;
+                        }
+                    }
+                    if (alreadyExists) {
+                        fixResultLabel.setText("Voter ID already exists — cannot add duplicate.");
+                    } else {
+                        try {
+                            int age = Integer.parseInt(parts[2].trim());
+                            voters.add(new Voter(voterId, parts[1].trim(), age));
+                            invalidList.getItems().remove(selected);
+                            fixResultLabel.setText("Row fixed and added successfully.");
+                        } catch (NumberFormatException ex) {
+                            fixResultLabel.setText("Age must be numeric.");
+                        }
+                    }
                 }
             } else if (selected.getFileType().equals("candidate") && parts.length == 3) {
                 String candidateId = parts[0].trim();
-                if (CheckDigitValidator.isValidId(candidateId)) {
-                    candidates.add(new Candidate(candidateId, parts[1].trim(), parts[2].trim()));
-                    invalidList.getItems().remove(selected);
-                    fixResultLabel.setText("Row fixed and added successfully.");
-                } else {
+                if (!CheckDigitValidator.isValidId(candidateId)) {
                     fixResultLabel.setText("Candidate ID still invalid.");
+                } else {
+                    boolean alreadyExists = false;
+                    for (Candidate c : candidates) {
+                        if (c.getCandidateId().equals(candidateId)) {
+                            alreadyExists = true;
+                            break;
+                        }
+                    }
+                    if (alreadyExists) {
+                        fixResultLabel.setText("Candidate ID already exists — cannot add duplicate.");
+                    } else {
+                        candidates.add(new Candidate(candidateId, parts[1].trim(), parts[2].trim()));
+                        invalidList.getItems().remove(selected);
+                        fixResultLabel.setText("Row fixed and added successfully.");
+                    }
                 }
             } else {
                 fixResultLabel.setText("Could not re-validate this row type.");
