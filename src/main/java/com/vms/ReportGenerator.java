@@ -75,4 +75,14 @@ public class ReportGenerator {
 
         return results;
     }
+
+    public void exportToTextFile(List<Ballot> results, String filepath) throws java.io.IOException {
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(filepath))) {
+            for (Ballot ballot : results) {
+                writer.println(ballot.getDate() + " | " + ballot.getVoterId() + " | " +
+                        ballot.getCandidateId() + " | " + ballot.getSeat() + " | " +
+                        ballot.getVoterAge() + " | " + ballot.getDistrict());
+            }
+        }
+    }
 }
