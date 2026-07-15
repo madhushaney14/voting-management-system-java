@@ -206,35 +206,6 @@ public class MainApp extends Application {
         Button searchButton = new Button("Search");
         TextArea resultArea = new TextArea();
         resultArea.setEditable(false);
-        resultArea.setPrefHeight(300);
-
-        searchButton.setOnAction(e -> {
-            if (reportGenerator == null) {
-                resultArea.setText("Please import data first.");
-                return;
-            }
-            List<Ballot> results = reportGenerator.searchByDistrict(searchField.getText());
-            StringBuilder sb = new StringBuilder();
-            for (Ballot ballot : results) {
-                sb.append(ballot.getDate()).append(" | ").append(ballot.getVoterId())
-                        .append(" | ").append(ballot.getDistrict()).append("\n");
-            }
-            resultArea.setText(sb.toString());
-        });
-
-        box.getChildren().addAll(new Label("District:"), searchField, searchButton, resultArea);
-        return box;
-    }
-
-    private VBox buildDistrictSearchScreen() {
-        VBox box = new VBox(10);
-        box.setPadding(new Insets(20));
-
-        TextField searchField = new TextField();
-        searchField.setPromptText("Enter district name (use * for wildcard, e.g. Col*)");
-        Button searchButton = new Button("Search");
-        TextArea resultArea = new TextArea();
-        resultArea.setEditable(false);
         resultArea.setPrefHeight(250);
 
         Button exportButton = new Button("Export Results to Text File");
